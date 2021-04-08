@@ -87,33 +87,24 @@ class App extends Component {
 
   modifyTimeFormat = (timeString) => {
     let timeStringArr = timeString.split(':');
+    const hoursStr = timeStringArr[0] ? timeStringArr[0].slice(0, 2) : '00';
+    const minutesStr = timeStringArr[1] ? timeStringArr[1].slice(0, 2) : '00';
+    const secStr = timeStringArr[2] ? timeStringArr[2].slice(0, 2) : '00';
 
-    timeStringArr = timeStringArr.map(item => {
-      // TODO: check if there is "-" in the start.
-      // if (item. === 1) {
-      //   item = `0${item}`;
-      // }
+    let now = new Date();
+    now.setHours(hoursStr, minutesStr, secStr);
 
-      if (item.length === 1) {
-        item = `0${item}`;
-      }
+    let hours = String(now.getHours());
+    if (hours.length === 1) hours = `0${hours}`;
+    let minutes = String(now.getMinutes());
+    if (minutes.length === 1) minutes = `0${minutes}`;
+    let sec = String(now.getSeconds());
+    if (sec.length === 1) sec = `0${sec}`;
 
-      if (item.length > 2) {
-        item = item.slice(0, 2);
-      }
-
-      return item;
-    });
-
-    if (timeStringArr.length === 2) {
-      timeStringArr.push('00');
-    }
-    timeString = timeStringArr.join(':');
-
-    return timeString;
+    return `${hours}:${minutes}:${sec}`;
   }
 
-  // currentTime === `00.00.00`
+  // currentTime === `00:00:00`
   tryShowAlarmAlert = (currentTime) => {
     const {alarmsList} = this.state;
 
@@ -178,18 +169,21 @@ class App extends Component {
     } else {
 
       const hours = Number(String(chosenTimezone).split('.')[0]);
-      let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0,2);
+      let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0, 2);
       if (minutesAsFractionalNumberStr.length < 2) minutesAsFractionalNumberStr += '0';
       const minutes = (Number(minutesAsFractionalNumberStr) / 100) * 60;
 
       now.setHours((now.getHours() + currentTimezoneOffset + hours), (now.getMinutes() + minutes));
     }
 
-    let hour = now.getHours();
-    let minute = now.getMinutes();
-    let second = now.getSeconds();
+    let hour = String(now.getHours());
+    if (hour.length === 1) hour = `0${hour}`;
+    let minute = String(now.getMinutes());
+    if (minute.length === 1) minute = `0${minute}`;
+    let second = String(now.getSeconds());
+    if (second.length === 1) second = `0${second}`;
 
-    this.tryShowAlarmAlert(`${hour}.${minute}.${second}`);
+    this.tryShowAlarmAlert(`${hour}:${minute}:${second}`);
 
     //hour
     hour = hour % 12;
