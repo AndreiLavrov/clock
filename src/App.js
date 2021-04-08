@@ -9,14 +9,15 @@ class App extends Component {
 
     this.state = {
       alarmsList: [],
-      timezoneOffset: 0,
+      timezonesList: [],
+      chosenTimezone: null,
     };
 
     this.timeout = 0;
   }
 
   componentDidMount() {
-    this.setInitialTimezoneOffset();
+    this.setChosenTimezone();
 
     this.canvas = document.getElementById("canvas");
     this.ctx = this.canvas.getContext("2d");
@@ -25,6 +26,7 @@ class App extends Component {
     this.radius = this.radius * 0.90;
     this.timeout = setInterval(this.drawClock, 1000);
 
+    this.setTimezonesList();
     this.setAlarmsList();
   }
 
@@ -34,16 +36,13 @@ class App extends Component {
 
   // TODO: should add shouldComponentUpdate.
 
-  setInitialTimezoneOffset = () => {
+  setChosenTimezone = () => {
     let now = new Date();
-    const timezoneOffset = - (now.getTimezoneOffset() / 60);
+    const chosenTimezone = -(now.getTimezoneOffset() / 60);
 
-    this.setState({ timezoneOffset });
+    this.setState({chosenTimezone});
   }
 
-  setTimezoneOffset = (data) => {
-    this.setState({ timezoneOffset: data });
-  }
 
   setAlarmsList = () => {
     const response = this.getAlarmsListReq();
@@ -60,6 +59,24 @@ class App extends Component {
   getAlarmsListReq = async () => {
     try {
       const response = await fetch(`https://raw.githubusercontent.com/medlabmg/developers-tests/master/frontend/alarm.json`);
+
+      return await response.json();
+    } catch (err) {
+      // here could be error listener
+      console.error(err);
+    }
+  }
+
+  setTimezonesList = () => {
+    const response = this.getTimezonesListReq();
+    response.then(timezonesList => {
+      this.setState({timezonesList});
+    });
+  }
+
+  getTimezonesListReq = async () => {
+    try {
+      const response = await fetch(`https://raw.githubusercontent.com/dmfilipenko/timezones.json/master/timezones.json`);
 
       return await response.json();
     } catch (err) {
@@ -149,11 +166,24 @@ class App extends Component {
   }
 
   drawTime(ctx, radius) {
-    const { timezoneOffset } = this.state;
+    const {chosenTimezone} = this.state;
+    // if (chosenTimezone === null) {}
+
     let now = new Date();
     const currentTimezoneOffset = now.getTimezoneOffset() / 60;
 
-    now.setHours(now.getHours() + currentTimezoneOffset + timezoneOffset);
+    // TODO: should optimize.
+    if (Number.isInteger(chosenTimezone)) {
+      now.setHours(now.getHours() + currentTimezoneOffset + chosenTimezone);
+    } else {
+
+      const hours = Number(String(chosenTimezone).split('.')[0]);
+      let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0,2);
+      if (minutesAsFractionalNumberStr.length < 2) minutesAsFractionalNumberStr += '0';
+      const minutes = (Number(minutesAsFractionalNumberStr) / 100) * 60;
+
+      now.setHours((now.getHours() + currentTimezoneOffset + hours), (now.getMinutes() + minutes));
+    }
 
     let hour = now.getHours();
     let minute = now.getMinutes();
@@ -186,7 +216,20 @@ class App extends Component {
     ctx.rotate(-pos);
   }
 
+  selectTimezone = (ev) => {
+    const {value} = ev.target;
+
+    this.setState({
+      chosenTimezone: Number(value),
+    })
+  }
+
   render() {
+
+    const {
+      timezonesList,
+      chosenTimezone,
+    } = this.state;
 
     return (
       <div className="App">
@@ -195,7 +238,25 @@ class App extends Component {
           style={{'backgroundColor': '#333'}}>
         </canvas>
 
-        <button onClick={() => this.setTimezoneOffset(1)}>Change timezone</button>
+        <select
+          name="timezonesList"
+          id="timezonesList"
+          value={chosenTimezone || '- Choose a timezone -'}
+          className="timezonesList"
+          onChange={(ev) => this.selectTimezone(ev)}
+        >
+          {timezonesList &&
+          timezonesList.map((option, index) => (
+            <option
+              key={index}
+              value={option.offset}
+            >
+              {`${option.text}, offset: ${option.offset}`}
+            </option>
+          ))}
+        </select>
+
+
       </div>
     );
   }

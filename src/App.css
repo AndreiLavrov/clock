@@ -36,3 +36,8 @@
     transform: rotate(360deg);
   }
 }
+
+.timezonesList {
+  display: flex;
+  margin: 20px auto;
+}
