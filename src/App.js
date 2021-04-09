@@ -2,7 +2,6 @@ import React, {Component} from 'react';
 
 import './App.css';
 
-
 class App extends Component {
   constructor(props) {
     super(props);
@@ -17,15 +16,8 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.setChosenTimezone();
-
-    this.canvas = document.getElementById("canvas");
-    this.ctx = this.canvas.getContext("2d");
-    this.radius = this.canvas.height / 2;
-    this.ctx.translate(this.radius, this.radius);
-    this.radius = this.radius * 0.90;
-    this.timeout = setInterval(this.drawClock, 1000);
-
+    this.setCurrentTimezone();
+    this.setClocksVariables();
     this.setTimezonesList();
     this.setAlarmsList();
   }
@@ -34,15 +26,64 @@ class App extends Component {
     clearInterval(this.timeout);
   }
 
-  // TODO: should add shouldComponentUpdate.
-
-  setChosenTimezone = () => {
-    let now = new Date();
-    const chosenTimezone = -(now.getTimezoneOffset() / 60);
-
-    this.setState({chosenTimezone});
+  setClocksVariables = () => {
+    this.canvas = document.getElementById("canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.radius = this.canvas.height / 2;
+    this.ctx.translate(this.radius, this.radius);
+    this.radius = this.radius * 0.90;
+    this.timeout = setInterval(this.drawClock, 1000);
   }
 
+  setCurrentTimezone = () => {
+    const now = new Date();
+    const currentTimezoneOffset = now.getTimezoneOffset() / 60;
+    const chosenTimezone = currentTimezoneOffset * -1;
+
+    const {
+      chosenTimezoneHour,
+      chosenTimezoneMinute,
+    } = this.getTimezoneDetails(chosenTimezone);
+
+    this.setState({chosenTimezone, currentTimezoneOffset, chosenTimezoneHour, chosenTimezoneMinute});
+  }
+
+  selectTimezone = (ev) => {
+    if (!ev) return;
+
+    const {value} = ev.target;
+    const chosenTimezone = Number(value);
+
+    const {
+      chosenTimezoneHour,
+      chosenTimezoneMinute,
+    } = this.getTimezoneDetails(chosenTimezone);
+
+    this.setState({
+      chosenTimezone,
+      chosenTimezoneHour,
+      chosenTimezoneMinute,
+    })
+  }
+
+  getTimezoneDetails = (chosenTimezone) => {
+    if (Number.isInteger(chosenTimezone)) {
+      return {
+        chosenTimezoneHour: chosenTimezone,
+        chosenTimezoneMinute: 0,
+      }
+    }
+
+    const chosenTimezoneHour = Number(String(chosenTimezone).split('.')[0]);
+    let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0, 2);
+    if (minutesAsFractionalNumberStr.length < 2) minutesAsFractionalNumberStr += '0';
+    const chosenTimezoneMinute = (Number(minutesAsFractionalNumberStr) / 100) * 60;
+
+    return {
+      chosenTimezoneHour,
+      chosenTimezoneMinute,
+    }
+  }
 
   setAlarmsList = () => {
     const response = this.getAlarmsListReq();
@@ -119,6 +160,45 @@ class App extends Component {
     this.drawTime(this.ctx, this.radius);
   }
 
+  drawTime(ctx, radius) {
+    const {
+      chosenTimezone,
+      currentTimezoneOffset,
+      chosenTimezoneHour,
+      chosenTimezoneMinute,
+    } = this.state;
+
+    const now = new Date();
+
+    if (Number.isInteger(chosenTimezone)) {
+      now.setHours(now.getHours() + currentTimezoneOffset + chosenTimezone);
+    } else {
+      now.setHours((now.getHours() + currentTimezoneOffset + chosenTimezoneHour), (now.getMinutes() + chosenTimezoneMinute));
+    }
+
+    let hour = String(now.getHours());
+    if (hour.length === 1) hour = `0${hour}`;
+    let minute = String(now.getMinutes());
+    if (minute.length === 1) minute = `0${minute}`;
+    let second = String(now.getSeconds());
+    if (second.length === 1) second = `0${second}`;
+
+    this.tryShowAlarmAlert(`${hour}:${minute}:${second}`);
+
+    //hour
+    hour = hour % 12;
+    hour = (hour * Math.PI / 6) +
+      (minute * Math.PI / (6 * 60)) +
+      (second * Math.PI / (360 * 60));
+    this.drawHand(ctx, hour, radius * 0.5, radius * 0.07);
+    //minute
+    minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+    this.drawHand(ctx, minute, radius * 0.8, radius * 0.07);
+    // second
+    second = (second * Math.PI / 30);
+    this.drawHand(ctx, second, radius * 0.9, radius * 0.02);
+  }
+
   drawFace = (ctx, radius) => {
     let grad;
     ctx.beginPath();
@@ -156,49 +236,6 @@ class App extends Component {
     }
   }
 
-  drawTime(ctx, radius) {
-    const {chosenTimezone} = this.state;
-    // if (chosenTimezone === null) {}
-
-    let now = new Date();
-    const currentTimezoneOffset = now.getTimezoneOffset() / 60;
-
-    // TODO: should optimize.
-    if (Number.isInteger(chosenTimezone)) {
-      now.setHours(now.getHours() + currentTimezoneOffset + chosenTimezone);
-    } else {
-
-      const hours = Number(String(chosenTimezone).split('.')[0]);
-      let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0, 2);
-      if (minutesAsFractionalNumberStr.length < 2) minutesAsFractionalNumberStr += '0';
-      const minutes = (Number(minutesAsFractionalNumberStr) / 100) * 60;
-
-      now.setHours((now.getHours() + currentTimezoneOffset + hours), (now.getMinutes() + minutes));
-    }
-
-    let hour = String(now.getHours());
-    if (hour.length === 1) hour = `0${hour}`;
-    let minute = String(now.getMinutes());
-    if (minute.length === 1) minute = `0${minute}`;
-    let second = String(now.getSeconds());
-    if (second.length === 1) second = `0${second}`;
-
-    this.tryShowAlarmAlert(`${hour}:${minute}:${second}`);
-
-    //hour
-    hour = hour % 12;
-    hour = (hour * Math.PI / 6) +
-      (minute * Math.PI / (6 * 60)) +
-      (second * Math.PI / (360 * 60));
-    this.drawHand(ctx, hour, radius * 0.5, radius * 0.07);
-    //minute
-    minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
-    this.drawHand(ctx, minute, radius * 0.8, radius * 0.07);
-    // second
-    second = (second * Math.PI / 30);
-    this.drawHand(ctx, second, radius * 0.9, radius * 0.02);
-  }
-
   drawHand(ctx, pos, length, width) {
     ctx.beginPath();
     ctx.lineWidth = width;
@@ -210,35 +247,28 @@ class App extends Component {
     ctx.rotate(-pos);
   }
 
-  selectTimezone = (ev) => {
-    const {value} = ev.target;
-
-    this.setState({
-      chosenTimezone: Number(value),
-    })
-  }
-
   render() {
 
     const {
       timezonesList,
-      chosenTimezone,
     } = this.state;
 
     return (
       <div className="App">
         <canvas
           id="canvas" width="400" height="400"
-          style={{'backgroundColor': '#333'}}>
+          className="clock"
+        >
         </canvas>
 
         <select
           name="timezonesList"
           id="timezonesList"
-          value={chosenTimezone || '- Choose a timezone -'}
           className="timezonesList"
           onChange={(ev) => this.selectTimezone(ev)}
         >
+          <option selected disabled>- Choose a timezone -</option>
+
           {timezonesList &&
           timezonesList.map((option, index) => (
             <option
@@ -249,7 +279,6 @@ class App extends Component {
             </option>
           ))}
         </select>
-
 
       </div>
     );
