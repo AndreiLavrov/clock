@@ -1,10 +1,17 @@
-import React, {Component} from 'react';
+import React, { PureComponent } from 'react';
 
 import styles from './App.module.scss';
 import Clock from '../clock/Clock';
 import TimezonesSelect from '../timezonesSelect/TimezonesSelect';
+import {
+  getAlarmsListReq,
+  getTimezonesListReq,
+} from '../../api/requests';
+import modifyTimeFormat from '../../utils/modifyTimeFormatService';
+import addZerosService from '../../utils/addZerosService';
+import getTimezoneDetails from '../../utils/getTimezoneDetailsService';
 
-class App extends Component {
+class App extends PureComponent {
   constructor(props) {
     super(props);
 
@@ -31,9 +38,9 @@ class App extends Component {
   setClocksVariables = () => {
     this.canvas = document.getElementById("canvas");
     this.ctx = this.canvas.getContext("2d");
-    this.radius = this.canvas.height / 2;
-    this.ctx.translate(this.radius, this.radius);
-    this.radius = this.radius * 0.90;
+    const halfOfHeight = this.canvas.height / 2;
+    this.ctx.translate(halfOfHeight, halfOfHeight);
+    this.radius = halfOfHeight * 0.90;
     this.timeout = setInterval(this.drawClock, 1000);
   }
 
@@ -45,7 +52,7 @@ class App extends Component {
     const {
       chosenTimezoneHour,
       chosenTimezoneMinute,
-    } = this.getTimezoneDetails(chosenTimezone);
+    } = getTimezoneDetails(chosenTimezone);
 
     this.setState({
       chosenTimezone,
@@ -64,7 +71,7 @@ class App extends Component {
     const {
       chosenTimezoneHour,
       chosenTimezoneMinute,
-    } = this.getTimezoneDetails(chosenTimezone);
+    } = getTimezoneDetails(chosenTimezone);
 
     this.setState({
       chosenTimezone,
@@ -73,86 +80,23 @@ class App extends Component {
     })
   }
 
-  getTimezoneDetails = (chosenTimezone) => {
-    if (Number.isInteger(chosenTimezone)) {
-      return {
-        chosenTimezoneHour: chosenTimezone,
-        chosenTimezoneMinute: 0,
-      }
-    }
+  setAlarmsList = async () => {
+    const response = await getAlarmsListReq();
+    const alarmsList = response.map(item => (
+      {
+        ...item,
+        time: modifyTimeFormat(item.time),
+      })
+    );
 
-    const chosenTimezoneHour = Number(String(chosenTimezone).split('.')[0]);
-    let minutesAsFractionalNumberStr = String(chosenTimezone).split('.')[1].slice(0, 2);
-    if (minutesAsFractionalNumberStr.length < 2) minutesAsFractionalNumberStr += '0';
-    const chosenTimezoneMinute = (Number(minutesAsFractionalNumberStr) / 100) * 60;
-
-    return {
-      chosenTimezoneHour,
-      chosenTimezoneMinute,
-    }
+    this.setState({alarmsList});
   }
 
-  setAlarmsList = () => {
-    const response = this.getAlarmsListReq();
-    response.then(alarmsList => {
-      alarmsList = alarmsList.map(item => (
-        {
-          ...item,
-          time: this.modifyTimeFormat(item.time),
-        }));
-      this.setState({alarmsList});
-    });
+  setTimezonesList = async () => {
+    const timezonesList = await getTimezonesListReq();
+    this.setState({timezonesList});
   }
 
-  getAlarmsListReq = async () => {
-    try {
-      const response = await fetch(`https://raw.githubusercontent.com/medlabmg/developers-tests/master/frontend/alarm.json`);
-
-      return await response.json();
-    } catch (err) {
-      // here could be error listener
-      console.error(err);
-    }
-  }
-
-  setTimezonesList = () => {
-    const response = this.getTimezonesListReq();
-    response.then(timezonesList => {
-      this.setState({timezonesList});
-    });
-  }
-
-  getTimezonesListReq = async () => {
-    try {
-      const response = await fetch(`https://raw.githubusercontent.com/dmfilipenko/timezones.json/master/timezones.json`);
-
-      return await response.json();
-    } catch (err) {
-      // here could be error listener
-      console.error(err);
-    }
-  }
-
-  modifyTimeFormat = (timeString) => {
-    let timeStringArr = timeString.split(':');
-    const hoursStr = timeStringArr[0] ? timeStringArr[0].slice(0, 2) : '00';
-    const minutesStr = timeStringArr[1] ? timeStringArr[1].slice(0, 2) : '00';
-    const secStr = timeStringArr[2] ? timeStringArr[2].slice(0, 2) : '00';
-
-    let now = new Date();
-    now.setHours(hoursStr, minutesStr, secStr);
-
-    let hours = String(now.getHours());
-    if (hours.length === 1) hours = `0${hours}`;
-    let minutes = String(now.getMinutes());
-    if (minutes.length === 1) minutes = `0${minutes}`;
-    let sec = String(now.getSeconds());
-    if (sec.length === 1) sec = `0${sec}`;
-
-    return `${hours}:${minutes}:${sec}`;
-  }
-
-  // currentTime === `00:00:00`
   tryShowAlarmAlert = (currentTime) => {
     const {alarmsList} = this.state;
 
@@ -183,12 +127,11 @@ class App extends Component {
       now.setHours((now.getHours() + currentTimezoneOffset + chosenTimezoneHour), (now.getMinutes() + chosenTimezoneMinute));
     }
 
-    let hour = String(now.getHours());
-    if (hour.length === 1) hour = `0${hour}`;
-    let minute = String(now.getMinutes());
-    if (minute.length === 1) minute = `0${minute}`;
-    let second = String(now.getSeconds());
-    if (second.length === 1) second = `0${second}`;
+    let {
+      hours: hour,
+      minutes: minute,
+      sec: second,
+    } = addZerosService(now);
 
     this.tryShowAlarmAlert(`${hour}:${minute}:${second}`);
 
