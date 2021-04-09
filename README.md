@@ -1,6 +1,6 @@
 # Clock
 
-"Clock" is a test task (SPA without any libraries) that displays the current time with the ability to change the time zone.
+"Clock" - application that allow you to check current time around the world.
 
 ## Visuals
 
