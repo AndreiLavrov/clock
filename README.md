@@ -1,6 +1,6 @@
-# Clock
+# TimezonesSelect
 
-"Clock" - application that allow you to check current time around the world.
+"TimezonesSelect" - application that allow you to check current time around the world.
 
 ## Visuals
 
@@ -8,7 +8,7 @@
 
 ## Installation
 
-Use the [node](https://nodejs.org/en/download/) and [npm](https://www.npmjs.com/get-npm) package manager to install "Clock".
+Use the [node](https://nodejs.org/en/download/) and [npm](https://www.npmjs.com/get-npm) package manager to install "TimezonesSelect".
 
 ```bash
 npm install

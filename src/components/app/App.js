@@ -1,6 +1,8 @@
 import React, {Component} from 'react';
 
-import './App.css';
+import styles from './App.module.scss';
+import Clock from '../clock/Clock';
+import TimezonesSelect from '../timezonesSelect/TimezonesSelect';
 
 class App extends Component {
   constructor(props) {
@@ -45,7 +47,12 @@ class App extends Component {
       chosenTimezoneMinute,
     } = this.getTimezoneDetails(chosenTimezone);
 
-    this.setState({chosenTimezone, currentTimezoneOffset, chosenTimezoneHour, chosenTimezoneMinute});
+    this.setState({
+      chosenTimezone,
+      currentTimezoneOffset,
+      chosenTimezoneHour,
+      chosenTimezoneMinute
+    });
   }
 
   selectTimezone = (ev) => {
@@ -254,32 +261,12 @@ class App extends Component {
     } = this.state;
 
     return (
-      <div className="App">
-        <canvas
-          id="canvas" width="400" height="400"
-          className="clock"
-        >
-        </canvas>
-
-        <select
-          name="timezonesList"
-          id="timezonesList"
-          className="timezonesList"
-          onChange={(ev) => this.selectTimezone(ev)}
-        >
-          <option selected disabled>- Choose a timezone -</option>
-
-          {timezonesList &&
-          timezonesList.map((option, index) => (
-            <option
-              key={index}
-              value={option.offset}
-            >
-              {`${option.text}, offset: ${option.offset}`}
-            </option>
-          ))}
-        </select>
-
+      <div className={styles.App}>
+        <Clock/>
+        <TimezonesSelect
+          timezonesList={timezonesList}
+          selectTimezone={this.selectTimezone}
+        />
       </div>
     );
   }
