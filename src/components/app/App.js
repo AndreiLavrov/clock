@@ -8,8 +8,9 @@ import {
   getTimezonesListReq,
 } from '../../api/requests';
 import modifyTimeFormat from '../../utils/modifyTimeFormatService';
-import addZerosService from '../../utils/addZerosService';
 import getTimezoneDetails from '../../utils/getTimezoneDetailsService';
+import addZerosService from '../../utils/addZerosService';
+
 
 class App extends PureComponent {
   constructor(props) {

@@ -6,7 +6,6 @@ const addZerosService = (date) => {
   let sec = String(date.getSeconds());
   if (sec.length === 1) sec = `0${sec}`;
 
-  // return `${hours}:${minutes}:${sec}`;
   return {
     hours,
     minutes,
